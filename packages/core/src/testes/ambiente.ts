@@ -34,7 +34,7 @@ export async function criarAmbiente(repo: Repo = new RepoMemoria(), inicio = '20
 
   const adminRow = await repo.usuarios.inserir({
     nome: 'Admin', email: 'admin@teste.com', senhaHash: 'h:senha123', papel: 'admin', status: 'ativo',
-    nomeLoja: null, documento: null, descricaoLoja: null, motivoRejeicao: null, criadoEm: agora().toISOString(),
+    nomeLoja: null, documento: null, telefone: null, descricaoLoja: null, motivoRejeicao: null, criadoEm: agora().toISOString(),
   } as Omit<Usuario, 'id'>);
   const admin: Ator = { id: adminRow.id, papel: 'admin' };
 
@@ -43,7 +43,7 @@ export async function criarAmbiente(repo: Repo = new RepoMemoria(), inicio = '20
     avancarDias: (d) => { t += d * 86_400_000; },
     async novoVendedor(nome = `Loja ${++n}`) {
       const u = await s.auth.solicitarCadastroVendedor(null, {
-        nome: 'Dono ' + nome, email: `v${++n}@teste.com`, senha: 'senha123', nomeLoja: nome, documento: '12345678901', descricaoLoja: 'Loja de quadrinhos de teste',
+        nome: 'Dono ' + nome, email: `v${++n}@teste.com`, senha: 'senha123', nomeLoja: nome, documento: '12345678901', telefone: '85999990000', descricaoLoja: 'Loja de quadrinhos de teste',
       });
       await s.admin.aprovarVendedor(admin, { id: u.id });
       return { id: u.id, papel: 'vendedor' };

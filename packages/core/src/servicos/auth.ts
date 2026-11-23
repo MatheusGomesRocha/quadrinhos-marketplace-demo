@@ -1,8 +1,8 @@
 import { z } from 'zod';
 import { ErroNegocio } from '../erros';
-import { JANELA_TENTATIVAS_LOGIN_MIN, LIMITE_TENTATIVAS_LOGIN } from '../regras';
+import { JANELA_TENTATIVAS_LOGIN_MIN, LIMITE_TENTATIVAS_LOGIN, somenteDigitos } from '../regras';
 import type { Ator } from '../tipos';
-import { criarBase, publico, validar, type Contexto } from './base';
+import { criarBase, publico, telefoneObrigatorio, telefoneOpcional, validar, type Contexto } from './base';
 
 const email = z.string().trim().toLowerCase().email().max(190);
 const senha = z.string().min(6).max(72);
@@ -16,12 +16,12 @@ export function criarAuth(ctx: Contexto) {
   }
 
   return {
-    async cadastrarComprador(_ator: Ator | null, entrada: { nome: string; email: string; senha: string }) {
-      const d = validar(z.object({ nome: z.string().trim().min(2).max(120), email, senha }), entrada);
+    async cadastrarComprador(_ator: Ator | null, entrada: { nome: string; email: string; senha: string; telefone?: string | null }) {
+      const d = validar(z.object({ nome: z.string().trim().min(2).max(120), email, senha, telefone: telefoneOpcional }), entrada);
       await garantirEmailLivre(d.email);
       const u = await repo.usuarios.inserir({
         nome: d.nome, email: d.email, senhaHash: await ctx.cripto.hash(d.senha), papel: 'comprador', status: 'ativo',
-        nomeLoja: null, documento: null, descricaoLoja: null, motivoRejeicao: null, criadoEm: iso(),
+        nomeLoja: null, documento: null, telefone: d.telefone ?? null, descricaoLoja: null, motivoRejeicao: null, criadoEm: iso(),
       });
       return publico(u);
     },
@@ -29,13 +29,14 @@ export function criarAuth(ctx: Contexto) {
     /** O vendedor se cadastra como "pendente" e só consegue entrar depois que um admin aprovar. */
     async solicitarCadastroVendedor(
       _ator: Ator | null,
-      entrada: { nome: string; email: string; senha: string; nomeLoja: string; documento: string; descricaoLoja: string },
+      entrada: { nome: string; email: string; senha: string; telefone: string; nomeLoja: string; documento: string; descricaoLoja: string },
     ) {
       const d = validar(
         z.object({
           nome: z.string().trim().min(2).max(120), email, senha,
           nomeLoja: z.string().trim().min(2).max(120),
-          documento: z.string().trim().min(11).max(30),
+          documento: z.string().trim().transform(somenteDigitos).refine((v) => v.length === 11 || v.length === 14, 'Informe um CPF (11 dígitos) ou CNPJ (14 dígitos) válido.'),
+          telefone: telefoneObrigatorio,
           descricaoLoja: z.string().trim().min(10).max(1000),
         }),
         entrada,
@@ -43,7 +44,7 @@ export function criarAuth(ctx: Contexto) {
       await garantirEmailLivre(d.email);
       const u = await repo.usuarios.inserir({
         nome: d.nome, email: d.email, senhaHash: await ctx.cripto.hash(d.senha), papel: 'vendedor', status: 'pendente',
-        nomeLoja: d.nomeLoja, documento: d.documento, descricaoLoja: d.descricaoLoja, motivoRejeicao: null, criadoEm: iso(),
+        nomeLoja: d.nomeLoja, documento: d.documento, telefone: d.telefone, descricaoLoja: d.descricaoLoja, motivoRejeicao: null, criadoEm: iso(),
       });
       return publico(u);
     },

@@ -90,7 +90,7 @@ export function criarCatalogo(ctx: Contexto) {
         produto,
         vendedor: { id: vendedor.id, nomeLoja: vendedor.nomeLoja ?? vendedor.nome, descricaoLoja: vendedor.descricaoLoja, nota: notaVendedor!, vendasConcluidas },
         nota: notaProduto!,
-        avaliacoes: avaliacoes.map((a) => ({ id: a.id, nota: a.nota, comentario: a.comentario, criadoEm: a.criadoEm, compradorNome: nomes.get(a.compradorId) ?? 'Cliente' })),
+        avaliacoes: avaliacoes.map((a) => ({ id: a.id, nota: a.nota, comentario: a.comentario, fotos: a.fotos, criadoEm: a.criadoEm, compradorNome: nomes.get(a.compradorId) ?? 'Cliente' })),
       };
     },
   };

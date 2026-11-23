@@ -4,7 +4,7 @@ import { calcularComissao, calcularFrete, PRAZO_ENTREGA_DIAS, somarDias } from '
 import type { Repo } from '../repo';
 import type { Ator, AvaliacaoProduto, AvaliacaoVendedor, Pagina, Pedido, PedidoItem, Reclamacao, StatusPedido } from '../tipos';
 import { STATUS_PEDIDO } from '../tipos';
-import { criarBase, esquemaPaginacao, mapaPorId, unicos, validar, type Contexto } from './base';
+import { cepEsquema, criarBase, esquemaPaginacao, mapaPorId, telefoneOpcional, unicos, validar, type Contexto } from './base';
 
 export interface PedidoCompleto extends Pedido {
   itens: PedidoItem[];
@@ -34,7 +34,8 @@ export async function enriquecerPedidos(repo: Repo, pedidos: Pedido[]): Promise<
 
 const esquemaEndereco = z.object({
   nome: z.string().trim().min(2).max(120),
-  cep: z.string().trim().regex(/^\d{5}-?\d{3}$/, 'CEP inválido.'),
+  cep: cepEsquema,
+  telefone: telefoneOpcional,
   rua: z.string().trim().min(2).max(160),
   numero: z.string().trim().min(1).max(12),
   complemento: z.string().trim().max(80).nullish(),
@@ -100,7 +101,7 @@ export function criarPedidos(ctx: Contexto) {
             metodoPagamento: d.metodoPagamento,
             enderecoNome: d.endereco.nome, enderecoCep: d.endereco.cep, enderecoRua: d.endereco.rua, enderecoNumero: d.endereco.numero,
             enderecoComplemento: d.endereco.complemento ?? null, enderecoBairro: d.endereco.bairro, enderecoCidade: d.endereco.cidade,
-            enderecoUf: d.endereco.uf, codigoRastreio: null, criadoEm: agora, pagoEm: agora, enviadoEm: null, prazoEntregaEm: null, entregueEm: null,
+            enderecoUf: d.endereco.uf, enderecoTelefone: d.endereco.telefone, codigoRastreio: null, criadoEm: agora, pagoEm: agora, enviadoEm: null, prazoEntregaEm: null, entregueEm: null,
           });
           for (const l of linhas) {
             // A baixa só acontece se ainda houver estoque: se outro comprador levou o último exemplar, tudo é desfeito.

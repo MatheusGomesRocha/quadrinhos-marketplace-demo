@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Check, Package, Truck, XCircle } from 'lucide-react';
 import { brl, dataHora } from '../api/formato';
-import { Campo, Cartao, Erro, Estado, Estrelas, Modal, Selo, SeletorNota, Titulo, useCarregar } from '../componentes/ui';
+import { Arte, Campo, Cartao, Erro, Estado, Estrelas, Lightbox, Modal, Selo, SeletorNota, Titulo, UploadFotos, useCarregar } from '../componentes/ui';
 import { useSessao } from '../sessao';
 
 function Linha({ ok, icone, titulo, quando }: { ok: boolean; icone: JSX.Element; titulo: string; quando?: string | null }) {
@@ -14,6 +14,14 @@ function Linha({ ok, icone, titulo, quando }: { ok: boolean; icone: JSX.Element;
   );
 }
 
+/** Miniatura do item: a arte vem do produto (busca o detalhe só para pegar tipo/cor). */
+function PedidoCapa({ produtoId, titulo }: { produtoId: number; titulo: string }) {
+  const { api } = useSessao();
+  const r = useCarregar(() => api.catalogo.detalhe({ id: produtoId }).catch(() => null), [produtoId]);
+  const p = r.dados?.produto;
+  return p ? <Arte p={p} className="aspect-[5/7] w-10 rounded object-cover" /> : <div className="esqueleto aspect-[5/7] w-10" title={titulo} />;
+}
+
 export function PedidoDetalhe() {
   const { api, usuario } = useSessao();
   const { id } = useParams();
@@ -23,7 +31,8 @@ export function PedidoDetalhe() {
   const [texto, setTexto] = useState('');
   const [notaVend, setNotaVend] = useState(0);
   const [comVend, setComVend] = useState('');
-  const [notas, setNotas] = useState<Record<number, { nota: number; comentario: string }>>({});
+  const [notas, setNotas] = useState<Record<number, { nota: number; comentario: string; fotos: string[] }>>({});
+  const [ampliar, setAmpliar] = useState<string[] | null>(null);
 
   async function rodar(fn: () => Promise<unknown>, fechar = true) {
     setErro(null);
@@ -36,9 +45,9 @@ export function PedidoDetalhe() {
         const comprador = usuario?.papel === 'comprador';
         const jaAvaliouProduto = (pid: number) => avaliacoes.produtos.find((a) => a.produtoId === pid);
         return (
-          <div className="space-y-5">
+          <div className="animate-subir space-y-5">
             <Titulo acao={<Selo status={p.status} />}>Pedido <span className="font-mono text-lg">{p.codigo}</span></Titulo>
-            <Link to={usuario?.papel === 'vendedor' ? '/vendedor/pedidos' : usuario?.papel === 'admin' ? '/admin/pedidos' : '/pedidos'} className="text-sm text-marca-700">← Voltar para a lista</Link>
+            <Link to={usuario?.papel === 'vendedor' ? '/vendedor/pedidos' : usuario?.papel === 'admin' ? '/admin/pedidos' : '/pedidos'} className="text-sm text-marca-600">← Voltar para a lista</Link>
             <Erro texto={erro} />
 
             <div className="grid gap-5 lg:grid-cols-[1fr_340px]">
@@ -67,17 +76,18 @@ export function PedidoDetalhe() {
                   <ul className="divide-y divide-stone-100">
                     {p.itens.map((i) => {
                       const av = jaAvaliouProduto(i.produtoId);
-                      const n = notas[i.produtoId] ?? { nota: 0, comentario: '' };
+                      const n = notas[i.produtoId] ?? { nota: 0, comentario: '', fotos: [] };
                       return (
                         <li key={i.id} className="py-3">
-                          <div className="flex justify-between"><Link className="font-semibold hover:text-marca-700" to={`/produto/${i.produtoId}`}>{i.titulo}</Link><span className="text-sm">{i.quantidade} × {brl(i.precoUnitarioCentavos)}</span></div>
-                          {av && <div className="mt-1 flex items-center gap-2 text-sm"><Estrelas valor={av.nota} tamanho={14} /><span className="text-stone-600">{av.comentario}</span></div>}
+                          <div className="flex items-center gap-3"><Link to={`/produto/${i.produtoId}`}><PedidoCapa produtoId={i.produtoId} titulo={i.titulo} /></Link><Link className="flex-1 font-bold hover:text-marca-600" to={`/produto/${i.produtoId}`}>{i.titulo}</Link><span className="text-sm">{i.quantidade} × {brl(i.precoUnitarioCentavos)}</span></div>
+                          {av && <div className="mt-1 text-sm"><div className="flex items-center gap-2"><Estrelas valor={av.nota} tamanho={14} /><span className="text-stone-600">{av.comentario}</span></div>{av.fotos.length > 0 && <div className="mt-2 flex gap-2">{av.fotos.map((f, k) => <button key={k} onClick={() => setAmpliar(av.fotos)} className="h-16 w-16 overflow-hidden rounded-lg ring-1 ring-stone-200"><img src={f} alt={`Sua foto ${k + 1}`} className="h-full w-full object-cover" /></button>)}</div>}</div>}
                           {acoes.podeAvaliar && !av && (
                             <div className="mt-2 space-y-2 rounded-lg bg-stone-50 p-3">
                               <p className="text-xs font-semibold text-stone-500">Avalie este produto</p>
                               <SeletorNota valor={n.nota} onChange={(nota) => setNotas({ ...notas, [i.produtoId]: { ...n, nota } })} />
                               <input className="campo" placeholder="Comentário (opcional)" value={n.comentario} onChange={(e) => setNotas({ ...notas, [i.produtoId]: { ...n, comentario: e.target.value } })} />
-                              <button className="btn-primario !py-1.5" disabled={!n.nota} onClick={() => rodar(() => api.avaliacoes.avaliarProduto({ pedidoId: p.id, produtoId: i.produtoId, nota: n.nota, comentario: n.comentario || null }), false)}>Enviar avaliação</button>
+                              <UploadFotos fotos={n.fotos} onChange={(fotos) => setNotas({ ...notas, [i.produtoId]: { ...n, fotos } })} />
+                              <button className="btn-primario !py-1.5" disabled={!n.nota} onClick={() => rodar(() => api.avaliacoes.avaliarProduto({ pedidoId: p.id, produtoId: i.produtoId, nota: n.nota, comentario: n.comentario || null, fotos: n.fotos }), false)}>Enviar avaliação</button>
                             </div>
                           )}
                         </li>
@@ -124,6 +134,7 @@ export function PedidoDetalhe() {
               </div>
             </div>
 
+            {ampliar && <Lightbox fotos={ampliar} inicio={0} onFechar={() => setAmpliar(null)} />}
             {modal === 'reclamar' && (
               <Modal titulo="Abrir reclamação" onFechar={() => setModal(null)}>
                 <div className="space-y-3"><Campo rotulo="O que aconteceu?"><textarea className="campo" rows={4} value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Mínimo de 10 caracteres" /></Campo><Erro texto={erro} /><button className="btn-perigo w-full" disabled={texto.trim().length < 10} onClick={() => rodar(() => api.reclamacoes.abrir({ pedidoId: p.id, motivo: texto }))}>Enviar reclamação</button></div>

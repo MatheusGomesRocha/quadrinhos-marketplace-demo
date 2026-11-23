@@ -1,4 +1,5 @@
 import { criarServicos } from './servicos';
+import { arteDataUri } from './arte';
 import type { Cripto } from './servicos/base';
 import type { Repo } from './repo';
 import type { Ator, EstadoProduto, TipoProduto } from './tipos';
@@ -86,14 +87,14 @@ export async function popularExemplo(repo: Repo, cripto: Cripto, fim: Date = new
   // ---- usuários ----
   const adm = await repo.usuarios.inserir({
     nome: 'Administração', email: 'admin@mkt.demo', senhaHash: await cripto.hash(SENHA_DEMO), papel: 'admin', status: 'ativo',
-    nomeLoja: null, documento: null, descricaoLoja: null, motivoRejeicao: null, criadoEm: agora().toISOString(),
+    nomeLoja: null, documento: null, telefone: null, descricaoLoja: null, motivoRejeicao: null, criadoEm: agora().toISOString(),
   });
   const admin: Ator = { id: adm.id, papel: 'admin' };
 
   const vendedores: { ator: Ator; produtos: number[] }[] = [];
   for (const [i, loja] of LOJAS.entries()) {
     const u = await s.auth.solicitarCadastroVendedor(null, {
-      nome: `Responsável ${loja.nome}`, email: `vendedor${i + 1}@mkt.demo`, senha: SENHA_DEMO, nomeLoja: loja.nome, documento: `1234567890${i}`, descricaoLoja: loja.descricao,
+      nome: `Responsável ${loja.nome}`, email: `vendedor${i + 1}@mkt.demo`, senha: SENHA_DEMO, nomeLoja: loja.nome, documento: `1234567890${i}`, telefone: `8532${String(10000 + i * 1111).slice(0, 4)}000${i}`.slice(0, 11), descricaoLoja: loja.descricao,
     });
     await s.admin.aprovarVendedor(admin, { id: u.id });
     const ator: Ator = { id: u.id, papel: 'vendedor' };
@@ -109,13 +110,13 @@ export async function popularExemplo(repo: Repo, cripto: Cripto, fim: Date = new
     t += 3_600_000;
   }
   await s.auth.solicitarCadastroVendedor(null, {
-    nome: 'Responsável Quadrinhos do Norte', email: 'vendedor5@mkt.demo', senha: SENHA_DEMO, nomeLoja: 'Quadrinhos do Norte', documento: '12345678905',
+    nome: 'Responsável Quadrinhos do Norte', email: 'vendedor5@mkt.demo', senha: SENHA_DEMO, nomeLoja: 'Quadrinhos do Norte', documento: '12345678905', telefone: '85988887777',
     descricaoLoja: 'Estamos começando e queremos vender HQs independentes.',
   });
 
   const compradores: Ator[] = [];
   for (const [i, nome] of COMPRADORES.entries()) {
-    const u = await s.auth.cadastrarComprador(null, { nome, email: `comprador${i + 1}@mkt.demo`, senha: SENHA_DEMO });
+    const u = await s.auth.cadastrarComprador(null, { nome, email: `comprador${i + 1}@mkt.demo`, senha: SENHA_DEMO, telefone: `85999${String(10000 + i * 7311).padStart(5, '0').slice(0, 5)}${i}`.slice(0, 11) });
     compradores.push({ id: u.id, papel: 'comprador' });
   }
 
@@ -156,7 +157,7 @@ export async function popularExemplo(repo: Repo, cripto: Cripto, fim: Date = new
         }
         const e = escolher(ENDERECOS);
         const r = await s.pedidos.finalizarCompra(comprador, {
-          endereco: { ...e, nome: (await repo.usuarios.obter(comprador.id))!.nome }, metodoPagamento: escolher(['pix', 'pix', 'cartao', 'boleto'] as const),
+          endereco: { ...e, nome: (await repo.usuarios.obter(comprador.id))!.nome, telefone: (await repo.usuarios.obter(comprador.id))!.telefone }, metodoPagamento: escolher(['pix', 'pix', 'cartao', 'boleto'] as const),
         });
         for (const p of r.pedidos) {
           const vend = vendedores.find((v) => v.ator.id === p.vendedorId)!.ator;
@@ -184,7 +185,10 @@ export async function popularExemplo(repo: Repo, cripto: Cripto, fim: Date = new
         await s.pedidos.marcarRecebido(p.comprador, { id: p.id });
         if (rnd() < 0.7) {
           for (const i of (await repo.pedidoItens.listar({ pedidoId: p.id }))) {
-            await s.avaliacoes.avaliarProduto(p.comprador, { pedidoId: p.id, produtoId: i.produtoId, nota: nota(), comentario: rnd() < 0.7 ? escolher(COMENTARIOS_PRODUTO) : null });
+            // ~40% das avaliações trazem fotos fictícias (o exemplar em cenários diferentes)
+            const prod = (await repo.produtos.obter(i.produtoId))!;
+            const fotos = rnd() < 0.4 ? Array.from({ length: inteiro(1, 2) }, (_, k) => arteDataUri({ titulo: prod.titulo, autor: prod.autor, tipo: prod.tipo, cor: prod.cor }, 'foto', inteiro(0, 30) + k)) : [];
+            await s.avaliacoes.avaliarProduto(p.comprador, { pedidoId: p.id, produtoId: i.produtoId, nota: nota(), comentario: rnd() < 0.7 || fotos.length ? escolher(COMENTARIOS_PRODUTO) : null, fotos });
           }
           await s.avaliacoes.avaliarVendedor(p.comprador, { pedidoId: p.id, nota: nota(), comentario: rnd() < 0.6 ? escolher(COMENTARIOS_VENDEDOR) : null });
         }

@@ -20,7 +20,8 @@ export interface Usuario {
   papel: Papel;
   status: StatusUsuario;
   nomeLoja: string | null;
-  documento: string | null;
+  documento: string | null; // só dígitos (CPF ou CNPJ)
+  telefone: string | null; // só dígitos, com DDD
   descricaoLoja: string | null;
   motivoRejeicao: string | null;
   criadoEm: string;
@@ -72,6 +73,7 @@ export interface Pedido {
   enderecoBairro: string;
   enderecoCidade: string;
   enderecoUf: string;
+  enderecoTelefone: string | null;
   codigoRastreio: string | null;
   criadoEm: string;
   pagoEm: string | null;
@@ -114,6 +116,7 @@ export interface AvaliacaoProduto {
   compradorId: number;
   nota: number; // 1 a 5, de meio em meio
   comentario: string | null;
+  fotos: string[]; // imagens (data URL) enviadas junto com a avaliação
   criadoEm: string;
 }
 

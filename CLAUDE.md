@@ -79,3 +79,5 @@ Contas do seed (senha `demo123`): `admin@mkt.demo`, `vendedor1..4@mkt.demo` (apr
 
 - Pagamento simulado; sem upload de imagem; sem e-mail de notificação; sem recuperação de senha.
 - A camada MySQL é validada via SQLite + contrato; rode os testes com `TEST_MYSQL=1` no seu ambiente para validar no MySQL de verdade.
+
+- Campos `telefone`/`enderecoTelefone` guardam só dígitos; `fotos` das avaliações é JSON em TEXT (migração 002 na versão real; limite de body 2mb). Listas usam scroll infinito (`useInfinita`).

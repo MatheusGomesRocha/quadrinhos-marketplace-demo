@@ -1,8 +1,9 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { TIPOS_PRODUTO } from '@mkt/core';
-import { centavosParaReais, reaisParaCentavos, ROTULO_TIPO } from '../../api/formato';
-import { Campo, Cartao, Erro, Titulo } from '../../componentes/ui';
+import { reaisParaCentavos, ROTULO_TIPO } from '../../api/formato';
+import { Campo, Cartao, Erro, InputMascara, Titulo } from '../../componentes/ui';
+import { mascaraMoeda } from '../../utils/mascaras';
 import { useSessao } from '../../sessao';
 
 const vazio = { titulo: '', descricao: '', tipo: 'hq', autor: '', editora: '', estado: 'novo', preco: '', estoque: '1' };
@@ -19,7 +20,7 @@ export function ProdutoForm() {
 
   useEffect(() => {
     if (!id) { setF(vazio); return; }
-    api.produtos.obter({ id: Number(id) }).then((p) => { setF({ titulo: p.titulo, descricao: p.descricao, tipo: p.tipo, autor: p.autor, editora: p.editora, estado: p.estado, preco: centavosParaReais(p.precoCentavos), estoque: String(p.estoque) }); setStatus(p.status as 'ativo' | 'inativo'); }).catch((x: Error) => setErro(x.message));
+    api.produtos.obter({ id: Number(id) }).then((p) => { setF({ titulo: p.titulo, descricao: p.descricao, tipo: p.tipo, autor: p.autor, editora: p.editora, estado: p.estado, preco: mascaraMoeda(String(p.precoCentavos)), estoque: String(p.estoque) }); setStatus(p.status as 'ativo' | 'inativo'); }).catch((x: Error) => setErro(x.message));
   }, [id, api]);
 
   async function enviar(e: FormEvent) {
@@ -45,7 +46,7 @@ export function ProdutoForm() {
           <Campo rotulo="Editora"><input className="campo" required value={f.editora} onChange={set('editora')} /></Campo>
           <Campo rotulo="Tipo"><select className="campo" value={f.tipo} onChange={set('tipo')}>{TIPOS_PRODUTO.map((t) => <option key={t} value={t}>{ROTULO_TIPO[t]}</option>)}</select></Campo>
           <Campo rotulo="Estado"><select className="campo" value={f.estado} onChange={set('estado')}><option value="novo">Novo</option><option value="usado">Usado</option></select></Campo>
-          <Campo rotulo="Preço (R$)"><input className="campo" required inputMode="decimal" placeholder="29,90" value={f.preco} onChange={set('preco')} /></Campo>
+          <Campo rotulo="Preço (R$)"><InputMascara mascara={mascaraMoeda} className="campo" required placeholder="29,90" value={f.preco} onChange={(v) => setF({ ...f, preco: v })} /></Campo>
           <Campo rotulo="Quantidade em estoque"><input className="campo" type="number" min={0} required value={f.estoque} onChange={set('estoque')} /></Campo>
           <div className="sm:col-span-2"><Campo rotulo="Descrição"><textarea className="campo" rows={4} required minLength={10} value={f.descricao} onChange={set('descricao')} /></Campo></div>
           <div className="space-y-3 sm:col-span-2"><Erro texto={erro} />{salvo && <p className="text-sm font-semibold text-emerald-700">Alterações salvas.</p>}<button className="btn-primario w-full">{id ? 'Salvar alterações' : 'Cadastrar produto'}</button></div>

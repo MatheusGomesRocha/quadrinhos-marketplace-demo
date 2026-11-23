@@ -4,7 +4,7 @@ import type { Usuario } from '../tipos';
 
 const usuario = (extra: Partial<Usuario> = {}): Omit<Usuario, 'id'> => ({
   nome: 'Fulano', email: `f${Math.random()}@x.com`, senhaHash: 'h', papel: 'comprador', status: 'ativo',
-  nomeLoja: null, documento: null, descricaoLoja: null, motivoRejeicao: null, criadoEm: '2026-11-01T10:00:00.123Z', ...extra,
+  nomeLoja: null, documento: null, telefone: null, descricaoLoja: null, motivoRejeicao: null, criadoEm: '2026-11-01T10:00:00.123Z', ...extra,
 });
 
 /** Contrato que TODA implementação de repositório precisa cumprir (memória, SQLite, MySQL). */
@@ -78,9 +78,11 @@ export function contratoRepo(nome: string, fabrica: () => Promise<Repo>) {
       const dono = await repo.usuarios.inserir(usuario({ papel: 'vendedor' }));
       const comprador = await repo.usuarios.inserir(usuario());
       const produto = await repo.produtos.inserir({ vendedorId: dono.id, titulo: 'T', descricao: 'D', tipo: 'hq', autor: 'A', editora: 'E', estado: 'novo', precoCentavos: 100, estoque: 1, vendidos: 0, cor: '#112233', status: 'ativo', criadoEm: '2026-11-01T00:00:00.000Z' });
-      const base = { codigo: 'MK-1', compradorId: comprador.id, vendedorId: dono.id, status: 'pago' as const, subtotalCentavos: 1, freteCentavos: 0, totalCentavos: 1, comissaoCentavos: 0, liquidoVendedorCentavos: 1, metodoPagamento: 'pix' as const, enderecoNome: 'N', enderecoCep: '60000-000', enderecoRua: 'R', enderecoNumero: '1', enderecoComplemento: null, enderecoBairro: 'B', enderecoCidade: 'C', enderecoUf: 'CE', codigoRastreio: null, criadoEm: '2026-11-01T00:00:00.000Z', pagoEm: '2026-11-01T00:00:00.000Z', enviadoEm: null, prazoEntregaEm: null, entregueEm: null };
+      const base = { codigo: 'MK-1', compradorId: comprador.id, vendedorId: dono.id, status: 'pago' as const, subtotalCentavos: 1, freteCentavos: 0, totalCentavos: 1, comissaoCentavos: 0, liquidoVendedorCentavos: 1, metodoPagamento: 'pix' as const, enderecoNome: 'N', enderecoCep: '60000-000', enderecoRua: 'R', enderecoNumero: '1', enderecoComplemento: null, enderecoBairro: 'B', enderecoCidade: 'C', enderecoUf: 'CE', enderecoTelefone: '85999990000', codigoRastreio: null, criadoEm: '2026-11-01T00:00:00.000Z', pagoEm: '2026-11-01T00:00:00.000Z', enviadoEm: null, prazoEntregaEm: null, entregueEm: null };
       const pedido = await repo.pedidos.inserir(base);
-      const av = await repo.avaliacoesProduto.inserir({ produtoId: produto.id, pedidoId: pedido.id, compradorId: comprador.id, nota: 4.5, comentario: null, criadoEm: '2026-11-02T00:00:00.000Z' });
+      const av = await repo.avaliacoesProduto.inserir({ produtoId: produto.id, pedidoId: pedido.id, compradorId: comprador.id, nota: 4.5, comentario: null, fotos: ['data:image/jpeg;base64,AAAA', 'data:image/svg+xml;utf8,%3Csvg%3E%C3%A7'], criadoEm: '2026-11-02T00:00:00.000Z' });
+      expect(av.fotos).toEqual(['data:image/jpeg;base64,AAAA', 'data:image/svg+xml;utf8,%3Csvg%3E%C3%A7']);
+      expect((await repo.avaliacoesProduto.obter(av.id))!.fotos).toHaveLength(2);
       expect(av.nota).toBe(4.5);
       expect(typeof av.nota).toBe('number');
       expect(pedido.pagoEm).toBe('2026-11-01T00:00:00.000Z');

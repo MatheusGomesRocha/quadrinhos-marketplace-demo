@@ -45,3 +45,6 @@ export function corDoTitulo(titulo: string): string {
   };
   return `#${f(0)}${f(8)}${f(4)}`;
 }
+
+/** Deixa só os dígitos (telefone, CEP, CPF/CNPJ chegam com ou sem máscara). */
+export const somenteDigitos = (s: string): string => s.replace(/\D/g, '');

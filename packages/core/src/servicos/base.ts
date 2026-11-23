@@ -1,5 +1,6 @@
 import { z, type ZodTypeAny } from 'zod';
 import { ErroNegocio } from '../erros';
+import { somenteDigitos } from '../regras';
 import type { Repo } from '../repo';
 import type { Ator, Papel, Usuario, UsuarioPublico } from '../tipos';
 
@@ -79,3 +80,11 @@ export const esquemaPaginacao = {
 export const mapaPorId = <T extends { id: number }>(linhas: T[]): Map<number, T> => new Map(linhas.map((l) => [l.id, l]));
 
 export const unicos = <T>(valores: T[]): T[] => [...new Set(valores)];
+
+const MSG_TEL = 'Informe o telefone com DDD (10 ou 11 dígitos).';
+const telefoneValido = (v: string) => /^\d{10,11}$/.test(v);
+/** Telefone brasileiro com DDD; aceita com ou sem máscara e guarda só os dígitos. */
+export const telefoneObrigatorio = z.string().trim().transform(somenteDigitos).refine(telefoneValido, MSG_TEL);
+export const telefoneOpcional = z.string().trim().nullish().transform((v) => (v ? somenteDigitos(v) : null)).refine((v) => v === null || telefoneValido(v), MSG_TEL);
+/** CEP "00000-000" (aceita sem hífen). */
+export const cepEsquema = z.string().trim().regex(/^\d{5}-?\d{3}$/, 'CEP inválido.').transform((v) => `${somenteDigitos(v).slice(0, 5)}-${somenteDigitos(v).slice(5)}`);

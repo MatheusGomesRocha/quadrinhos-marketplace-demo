@@ -7,6 +7,11 @@ import { notasDeProdutos, notasDeVendedores } from './notas';
 
 const nota = z.number().refine(notaValida, 'Dê uma nota de 1 a 5 (pode ter meia estrela).');
 const comentario = z.string().trim().max(1000).nullish();
+/** Até 3 imagens por avaliação, como data URL (o front reduz a foto antes de enviar). */
+export const MAX_FOTOS = 3;
+const MAX_CHARS_FOTO = 450_000;
+const foto = z.string().max(MAX_CHARS_FOTO, 'Cada foto pode ter no máximo ~300 KB.').regex(/^data:image\/(jpeg|png|webp|svg\+xml)[;,]/, 'Envie imagens JPG, PNG ou WEBP.');
+const fotos = z.array(foto).max(MAX_FOTOS, `Envie no máximo ${MAX_FOTOS} fotos.`).default([]);
 
 export function criarAvaliacoes(ctx: Contexto) {
   const { repo } = ctx;
@@ -22,12 +27,12 @@ export function criarAvaliacoes(ctx: Contexto) {
   }
 
   return {
-    async avaliarProduto(ator: Ator | null, entrada: { pedidoId: number; produtoId: number; nota: number; comentario?: string | null }) {
-      const d = validar(z.object({ pedidoId: z.number().int(), produtoId: z.number().int(), nota, comentario }), entrada);
+    async avaliarProduto(ator: Ator | null, entrada: { pedidoId: number; produtoId: number; nota: number; comentario?: string | null; fotos?: string[] }) {
+      const d = validar(z.object({ pedidoId: z.number().int(), produtoId: z.number().int(), nota, comentario, fotos }), entrada);
       const { u, p } = await pedidoAvaliavel(ator, d.pedidoId);
       if ((await repo.pedidoItens.contar({ pedidoId: p.id, produtoId: d.produtoId })) === 0) throw new ErroNegocio('NAO_ENCONTRADO', 'Este produto não faz parte do pedido.', 404);
       if ((await repo.avaliacoesProduto.contar({ pedidoId: p.id, produtoId: d.produtoId })) > 0) throw new ErroNegocio('JA_AVALIADO', 'Você já avaliou este produto neste pedido.', 409);
-      return repo.avaliacoesProduto.inserir({ produtoId: d.produtoId, pedidoId: p.id, compradorId: u.id, nota: d.nota, comentario: d.comentario?.trim() || null, criadoEm: iso() });
+      return repo.avaliacoesProduto.inserir({ produtoId: d.produtoId, pedidoId: p.id, compradorId: u.id, nota: d.nota, comentario: d.comentario?.trim() || null, fotos: d.fotos, criadoEm: iso() });
     },
 
     async avaliarVendedor(ator: Ator | null, entrada: { pedidoId: number; nota: number; comentario?: string | null }) {

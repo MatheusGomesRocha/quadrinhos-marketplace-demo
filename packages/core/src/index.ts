@@ -9,3 +9,4 @@ export type { PedidoCompleto } from './servicos/pedidos';
 export type { ProdutoVitrine } from './servicos/catalogo';
 export type { GrupoCarrinho, ItemCarrinho } from './servicos/carrinho';
 export { popularExemplo } from './seed';
+export * from './arte';

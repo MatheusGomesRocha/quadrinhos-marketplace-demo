@@ -41,3 +41,11 @@ npm run dev:demo
 ```
 
 Projeto de portfólio: pagamento simulado, títulos e lojas fictícios.
+
+## Recursos de interface
+
+- **Máscaras** de telefone, CEP, CPF/CNPJ e moeda (`apps/web/src/utils/mascaras.ts`); o core guarda só dígitos e valida.
+- **CEP automático**: ao completar 8 dígitos, consulta a [ViaCEP](https://viacep.com.br) e preenche rua, bairro, cidade e UF (precisa de internet; se falhar, o formulário continua manual).
+- **Fotos fictícias** dos produtos geradas em código (`packages/core/src/arte.ts`, SVG determinístico pelo título, sem imagens protegidas).
+- **Avaliações com fotos** (até 3, redimensionadas no navegador); o seed já traz exemplos.
+- **Scroll infinito** nas listas (`useInfinita` + `Sentinela`, IntersectionObserver).

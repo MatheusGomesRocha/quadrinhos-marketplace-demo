@@ -38,8 +38,20 @@ export function suiteRegras(nome: string, fabricaRepo: () => Promise<Repo>) {
         expect(e.message).toMatch(/nome: Mínimo de 2 caracteres/);
       });
 
+      it('telefone e documento aceitam máscara e são guardados só com dígitos; valores inválidos são recusados', async () => {
+        const v = await a.s.auth.solicitarCadastroVendedor(null, { nome: 'Rita', email: 'rita@loja.com', senha: 'senha123', nomeLoja: 'Loja da Rita', documento: '123.456.789-01', telefone: '(85) 99999-0000', descricaoLoja: 'Vendo mangás novos' });
+        expect(v.documento).toBe('12345678901');
+        expect(v.telefone).toBe('85999990000');
+        const base = { nome: 'Rita', senha: 'senha123', nomeLoja: 'Loja', descricaoLoja: 'Vendo mangás novos' };
+        await erro(a.s.auth.solicitarCadastroVendedor(null, { ...base, email: 'a@a.com', documento: '123', telefone: '85999990000' }), 'VALIDACAO');
+        await erro(a.s.auth.solicitarCadastroVendedor(null, { ...base, email: 'b@a.com', documento: '12345678901', telefone: '999' }), 'VALIDACAO');
+        const c = await a.s.auth.cadastrarComprador(null, { nome: 'Caio', email: 'caio@x.com', senha: 'senha123', telefone: '(11) 98888-7777' });
+        expect(c.telefone).toBe('11988887777');
+        expect((await a.s.auth.cadastrarComprador(null, { nome: 'Sem Fone', email: 'sf@x.com', senha: 'senha123' })).telefone).toBeNull();
+      });
+
       it('vendedor fica pendente: não entra até o admin aprovar', async () => {
-        const v = await a.s.auth.solicitarCadastroVendedor(null, { nome: 'João', email: 'joao@loja.com', senha: 'senha123', nomeLoja: 'Gibis do João', documento: '12345678901', descricaoLoja: 'Vendo gibis usados' });
+        const v = await a.s.auth.solicitarCadastroVendedor(null, { nome: 'João', email: 'joao@loja.com', senha: 'senha123', nomeLoja: 'Gibis do João', documento: '12345678901', telefone: '85999990000', descricaoLoja: 'Vendo gibis usados' });
         expect(v.status).toBe('pendente');
         await erro(a.s.auth.login(null, { email: 'joao@loja.com', senha: 'senha123' }), 'CADASTRO_PENDENTE');
         await a.s.admin.aprovarVendedor(a.admin, { id: v.id });
@@ -48,7 +60,7 @@ export function suiteRegras(nome: string, fabricaRepo: () => Promise<Repo>) {
       });
 
       it('vendedor rejeitado vê o motivo e não consegue entrar', async () => {
-        const v = await a.s.auth.solicitarCadastroVendedor(null, { nome: 'Zé', email: 'ze@loja.com', senha: 'senha123', nomeLoja: 'Loja do Zé', documento: '12345678901', descricaoLoja: 'Vendo coisas variadas' });
+        const v = await a.s.auth.solicitarCadastroVendedor(null, { nome: 'Zé', email: 'ze@loja.com', senha: 'senha123', nomeLoja: 'Loja do Zé', documento: '12345678901', telefone: '85999990000', descricaoLoja: 'Vendo coisas variadas' });
         await a.s.admin.rejeitarVendedor(a.admin, { id: v.id, motivo: 'Documento ilegível' });
         const e = await erro(a.s.auth.login(null, { email: 'ze@loja.com', senha: 'senha123' }), 'CADASTRO_REJEITADO');
         expect(e.message).toContain('Documento ilegível');
@@ -96,7 +108,7 @@ export function suiteRegras(nome: string, fabricaRepo: () => Promise<Repo>) {
         await a.novoProduto(v, { titulo: 'Esgotado', estoque: 0 });
         const inativo = await a.novoProduto(v, { titulo: 'Inativo' });
         await a.s.produtos.alterarStatus(v, { id: inativo, status: 'inativo' });
-        const pendente = await a.s.auth.solicitarCadastroVendedor(null, { nome: 'Pedro', email: 'p@x.com', senha: 'senha123', nomeLoja: 'Pendente', documento: '12345678901', descricaoLoja: 'Loja em análise ainda' });
+        const pendente = await a.s.auth.solicitarCadastroVendedor(null, { nome: 'Pedro', email: 'p@x.com', senha: 'senha123', nomeLoja: 'Pendente', documento: '12345678901', telefone: '85999990000', descricaoLoja: 'Loja em análise ainda' });
         expect(pendente.status).toBe('pendente');
 
         const r = await a.s.catalogo.listar(null, {});
@@ -177,6 +189,16 @@ export function suiteRegras(nome: string, fabricaRepo: () => Promise<Repo>) {
     });
 
     describe('checkout', () => {
+      it('normaliza CEP e telefone do endereço e guarda no pedido', async () => {
+        const v = await a.novoVendedor();
+        const c = await a.novoComprador();
+        const p = await a.novoProduto(v);
+        await a.s.carrinho.adicionar(c, { produtoId: p, quantidade: 1 });
+        const r = await a.s.pedidos.finalizarCompra(c, { endereco: { ...ENDERECO, cep: '60165121', telefone: '(85) 98888-7777' }, metodoPagamento: 'pix' });
+        const ped = (await a.s.pedidos.detalhe(c, { id: r.pedidos[0]!.id })).pedido;
+        expect([ped.enderecoCep, ped.enderecoTelefone]).toEqual(['60165-121', '85988887777']);
+      });
+
       it('gera um pedido por vendedor, baixa o estoque, calcula comissão e limpa o carrinho', async () => {
         const v1 = await a.novoVendedor('Loja A');
         const v2 = await a.novoVendedor('Loja B');
@@ -352,6 +374,21 @@ export function suiteRegras(nome: string, fabricaRepo: () => Promise<Repo>) {
         await a.s.pedidos.marcarEnviado(v, { id, codigoRastreio: 'BR123456789' });
         await a.s.pedidos.marcarRecebido(c, { id });
       };
+
+      it('avaliação aceita até 3 fotos e recusa arquivos que não são imagem', async () => {
+        const { v, c, p, id } = await pedidoEntregue();
+        await entregar(v, c, id);
+        const foto = 'data:image/jpeg;base64,/9j/4AAQSkZJRg==';
+        await erro(a.s.avaliacoes.avaliarProduto(c, { pedidoId: id, produtoId: p, nota: 5, fotos: [foto, foto, foto, foto] }), 'VALIDACAO');
+        await erro(a.s.avaliacoes.avaliarProduto(c, { pedidoId: id, produtoId: p, nota: 5, fotos: ['data:text/html;base64,PHNjcmlwdD4='] }), 'VALIDACAO');
+        await erro(a.s.avaliacoes.avaliarProduto(c, { pedidoId: id, produtoId: p, nota: 5, fotos: ['https://exemplo.com/a.jpg'] }), 'VALIDACAO');
+        await erro(a.s.avaliacoes.avaliarProduto(c, { pedidoId: id, produtoId: p, nota: 5, fotos: [`data:image/png;base64,${'A'.repeat(460_000)}`] }), 'VALIDACAO');
+        await a.s.avaliacoes.avaliarProduto(c, { pedidoId: id, produtoId: p, nota: 5, comentario: 'Olha como ficou', fotos: [foto, foto] });
+        const det = await a.s.catalogo.detalhe(null, { id: p });
+        expect(det.avaliacoes[0]!.fotos).toEqual([foto, foto]);
+        const sem = await a.s.avaliacoes.doProduto(null, { produtoId: p });
+        expect(sem.avaliacoes[0]!.fotos).toHaveLength(2);
+      });
 
       it('só avalia depois de marcar como recebido', async () => {
         const { v, c, p, id } = await pedidoEntregue();
@@ -555,7 +592,7 @@ export function suiteRegras(nome: string, fabricaRepo: () => Promise<Repo>) {
       });
 
       it('fila de vendedores pendentes', async () => {
-        await a.s.auth.solicitarCadastroVendedor(null, { nome: 'Novo', email: 'novo@loja.com', senha: 'senha123', nomeLoja: 'Loja Nova', documento: '12345678901', descricaoLoja: 'Quero vender mangás' });
+        await a.s.auth.solicitarCadastroVendedor(null, { nome: 'Novo', email: 'novo@loja.com', senha: 'senha123', nomeLoja: 'Loja Nova', documento: '12345678901', telefone: '85999990000', descricaoLoja: 'Quero vender mangás' });
         const fila = await a.s.admin.vendedores(a.admin, {});
         expect(fila.total).toBe(1);
         expect(fila.itens[0]).toMatchObject({ nomeLoja: 'Loja Nova', status: 'pendente' });
