@@ -107,7 +107,7 @@ function LayoutPainel({ children }: { children: ReactNode }) {
         <FaixaDemo />
         <div className="flex items-center justify-between px-4 py-3 lg:px-2 lg:py-4"><Link to={admin ? '/admin' : '/vendedor'}><Logo escuro /></Link>
           <button className="text-stone-400 hover:text-white lg:hidden" onClick={() => { sair(); nav('/'); }} aria-label="Sair"><LogOut size={18} /></button></div>
-        <nav className="flex gap-1 overflow-x-auto px-3 pb-3 lg:min-h-0 lg:flex-1 lg:flex-col lg:overflow-y-auto lg:overflow-x-hidden lg:px-0">
+        <nav className="flex gap-1 overflow-x-auto px-3 pb-3 lg:min-h-0 lg:flex-1 lg:flex-col lg:overflow-y-auto lg:overflow-x-hidden sem-barra lg:px-0">
           {itens.map(([to, rot, ic]) => (
             <NavLink key={to} to={to} end className={link}>{ic}{rot}{to === '/mensagens' && contadores.mensagens > 0 && <span className="ml-auto rounded-full bg-sky-500 px-1.5 text-[10px] font-bold text-white">{contadores.mensagens}</span>}</NavLink>
           ))}

@@ -24,3 +24,9 @@
   .chip-ativo { @apply border-tinta-900 bg-tinta-900 text-white hover:bg-tinta-800; }
   .esqueleto { @apply relative overflow-hidden rounded-lg bg-stone-200/70 before:absolute before:inset-0 before:-translate-x-full before:animate-[brilho_1.4s_infinite] before:bg-gradient-to-r before:from-transparent before:via-white/60 before:to-transparent; }
 }
+
+/* Rolagem sem barra visível (menu lateral dos painéis) */
+@layer utilities {
+  .sem-barra { scrollbar-width: none; -ms-overflow-style: none; }
+  .sem-barra::-webkit-scrollbar { display: none; }
+}
