@@ -77,7 +77,14 @@ Contas do seed (senha `demo123`): `admin@mkt.demo`, `vendedor1..4@mkt.demo` (apr
 
 ## Limitações conhecidas / próximos passos
 
-- Pagamento simulado; sem upload de imagem; sem e-mail de notificação; sem recuperação de senha.
+- Pagamento simulado; upload de imagem só nas avaliações (produtos usam arte gerada, sem fotos reais por direitos autorais); sem e-mail de notificação; sem recuperação de senha.
 - A camada MySQL é validada via SQLite + contrato; rode os testes com `TEST_MYSQL=1` no seu ambiente para validar no MySQL de verdade.
 
 - Campos `telefone`/`enderecoTelefone` guardam só dígitos; `fotos` das avaliações é JSON em TEXT (migração 002 na versão real; limite de body 2mb). Listas usam scroll infinito (`useInfinita`).
+
+## Armadilhas de interface (aprendidas)
+
+- Modais e `Lightbox` usam `createPortal(document.body)`: dentro de um ancestral com `animate-subir` (transform) o `fixed` deixa de ser relativo à janela e o modal fica fora de vista.
+- Mudou o formato dos dados do seed na demo? Suba a chave `mkt-demo:vN` em `apps/web/src/api/demo.ts`, senão o `localStorage` antigo quebra telas (ex.: produto em branco por falta de `fotos`).
+- "Venda na Estante Viva" só aparece para visitante e comprador. Menu lateral dos painéis rola sem barra visível (`.sem-barra`).
+- Deploy do Pages às vezes falha com "No artifacts named github-pages": é transitório, basta rodar o job de novo.
