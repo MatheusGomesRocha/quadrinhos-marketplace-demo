@@ -1,0 +1,11 @@
+export * from './tipos';
+export * from './erros';
+export * from './regras';
+export * from './repo';
+export { RepoMemoria, type EstadoMemoria } from './memoria';
+export { criarServicos, type Servicos, type ClienteApi } from './servicos';
+export type { Contexto, Cripto } from './servicos/base';
+export type { PedidoCompleto } from './servicos/pedidos';
+export type { ProdutoVitrine } from './servicos/catalogo';
+export type { GrupoCarrinho, ItemCarrinho } from './servicos/carrinho';
+export { popularExemplo } from './seed';
