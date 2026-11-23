@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { useCallback, useEffect, useMemo, useRef, useState, type ImgHTMLAttributes, type InputHTMLAttributes, type ReactNode } from 'react';
 import { ChevronLeft, ChevronRight, ImagePlus, Loader2, Star, X } from 'lucide-react';
 import { arteDataUri, type Pagina, type VistaArte } from '@mkt/core';
@@ -206,28 +207,36 @@ export function SeletorNota({ valor, onChange }: { valor: number; onChange: (n: 
 
 /* ───────────── modais, fotos e formulários ───────────── */
 
+/** Trava a rolagem da página enquanto um modal está aberto. */
+function useTravarRolagem() {
+  useEffect(() => { const antes = document.body.style.overflow; document.body.style.overflow = 'hidden'; return () => { document.body.style.overflow = antes; }; }, []);
+}
+
 export function Modal({ titulo, onFechar, children }: { titulo: string; onFechar: () => void; children: ReactNode }) {
+  useTravarRolagem();
   useEffect(() => { const f = (e: KeyboardEvent) => e.key === 'Escape' && onFechar(); window.addEventListener('keydown', f); return () => window.removeEventListener('keydown', f); }, [onFechar]);
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-tinta-900/50 p-0 backdrop-blur-sm sm:items-center sm:p-4" onClick={onFechar}>
       <div className="max-h-[92vh] w-full max-w-lg animate-subir overflow-auto rounded-t-3xl bg-white p-6 shadow-2xl sm:rounded-3xl" onClick={(e) => e.stopPropagation()} role="dialog" aria-label={titulo}>
         <div className="mb-4 flex items-center justify-between"><h2 className="text-lg font-extrabold">{titulo}</h2><button onClick={onFechar} aria-label="Fechar" className="rounded-full p-1.5 hover:bg-stone-100"><X size={20} /></button></div>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
 /** Visualizador de fotos em tela cheia, com setas e teclado. */
 export function Lightbox({ fotos, inicio, onFechar, legenda }: { fotos: string[]; inicio: number; onFechar: () => void; legenda?: (i: number) => ReactNode }) {
   const [i, setI] = useState(inicio);
+  useTravarRolagem();
   const ir = useCallback((d: number) => setI((x) => (x + d + fotos.length) % fotos.length), [fotos.length]);
   useEffect(() => {
     const f = (e: KeyboardEvent) => { if (e.key === 'Escape') onFechar(); if (e.key === 'ArrowRight') ir(1); if (e.key === 'ArrowLeft') ir(-1); };
     window.addEventListener('keydown', f);
     return () => window.removeEventListener('keydown', f);
   }, [ir, onFechar]);
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-black/90 p-4" onClick={onFechar} role="dialog" aria-label="Foto ampliada">
       <button className="absolute right-4 top-4 rounded-full bg-white/10 p-2 text-white hover:bg-white/20" onClick={onFechar} aria-label="Fechar"><X /></button>
       <img src={fotos[i]} alt="" className="max-h-[78vh] max-w-full rounded-lg object-contain" onClick={(e) => e.stopPropagation()} />
@@ -237,7 +246,8 @@ export function Lightbox({ fotos, inicio, onFechar, legenda }: { fotos: string[]
         <button className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-white/10 p-3 text-white hover:bg-white/20" onClick={(e) => { e.stopPropagation(); ir(1); }} aria-label="Próxima"><ChevronRight /></button>
         <p className="absolute bottom-4 text-xs text-white/70">{i + 1} / {fotos.length}</p>
       </>)}
-    </div>
+    </div>,
+    document.body,
   );
 }
 
