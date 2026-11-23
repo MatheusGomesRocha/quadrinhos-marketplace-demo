@@ -76,8 +76,8 @@ function LayoutLoja({ children }: { children: ReactNode }) {
           {TIPOS_MENU.map(([t, rot]) => (
             <Link key={t} to={t ? `/?tipo=${t}` : '/'} className={`whitespace-nowrap rounded-full px-3.5 py-1.5 font-semibold transition ${tipoAtual === t ? 'bg-tinta-900 text-white' : 'text-stone-600 hover:bg-stone-100'}`}>{rot}</Link>
           ))}
-          <span className="mx-2 h-4 w-px bg-stone-200" />
-          <Link to="/vender" className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 font-semibold text-marca-600 hover:bg-marca-50"><Store size={15} /> Venda na Estante Viva</Link>
+          {(!usuario || usuario.papel === 'comprador') && <><span className="mx-2 h-4 w-px bg-stone-200" />
+          <Link to="/vender" className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 font-semibold text-marca-600 hover:bg-marca-50"><Store size={15} /> Venda na Estante Viva</Link></>}
         </nav>
       </header>
       <main className="mx-auto max-w-7xl px-4 py-8">{children}</main>
@@ -107,13 +107,13 @@ function LayoutPainel({ children }: { children: ReactNode }) {
         <FaixaDemo />
         <div className="flex items-center justify-between px-4 py-3 lg:px-2 lg:py-4"><Link to={admin ? '/admin' : '/vendedor'}><Logo escuro /></Link>
           <button className="text-stone-400 hover:text-white lg:hidden" onClick={() => { sair(); nav('/'); }} aria-label="Sair"><LogOut size={18} /></button></div>
-        <nav className="flex gap-1 overflow-x-auto px-3 pb-3 lg:flex-1 lg:flex-col lg:overflow-visible lg:px-0">
+        <nav className="flex gap-1 overflow-x-auto px-3 pb-3 lg:min-h-0 lg:flex-1 lg:flex-col lg:overflow-y-auto lg:overflow-x-hidden lg:px-0">
           {itens.map(([to, rot, ic]) => (
             <NavLink key={to} to={to} end className={link}>{ic}{rot}{to === '/mensagens' && contadores.mensagens > 0 && <span className="ml-auto rounded-full bg-sky-500 px-1.5 text-[10px] font-bold text-white">{contadores.mensagens}</span>}</NavLink>
           ))}
           <Link to="/" className="flex items-center gap-3 whitespace-nowrap rounded-xl px-3.5 py-2.5 text-sm font-semibold text-stone-400 hover:bg-white/5 hover:text-white lg:mt-3 lg:border-t lg:border-white/10 lg:pt-4"><ShoppingCart size={18} /> Ver a loja</Link>
         </nav>
-        <div className="hidden rounded-2xl bg-white/5 p-3 lg:block">
+        <div className="hidden shrink-0 rounded-2xl bg-white/5 p-3 lg:block">
           <p className="truncate text-sm font-bold text-white">{usuario?.nomeLoja ?? usuario?.nome}</p>
           <p className="text-xs capitalize text-stone-400">{usuario?.papel}</p>
           <button className="mt-2 flex items-center gap-2 text-xs font-semibold text-stone-400 hover:text-white" onClick={() => { sair(); nav('/'); }}><LogOut size={14} /> Sair</button>

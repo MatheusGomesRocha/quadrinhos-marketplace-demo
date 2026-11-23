@@ -2,7 +2,7 @@ import bcrypt from 'bcryptjs';
 import { criarServicos, ErroNegocio, popularExemplo, RepoMemoria, type Ator, type ClienteApi, type Cripto } from '@mkt/core';
 import { ErroApi } from './cliente';
 
-const CHAVE_DADOS = 'mkt-demo:v1';
+const CHAVE_DADOS = 'mkt-demo:v2';
 const CHAVE_ATOR = 'mkt-demo:ator';
 
 // Custo baixo: na demo o hash roda no navegador e o seed cria ~20 contas.
